@@ -1,0 +1,1124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CorpHire & Connect MVP</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 
+        Chosen Palette: Calm Blues & Grays (e.g., Tailwind's blue-600 for accents, gray-100 for backgrounds, gray-800 for text)
+        Application Structure Plan: Single-page app with header navigation (Home, Opportunities, Community, Profile, Login/Register). Main content area dynamically updates. Chosen for clear separation of core MVP features and intuitive user flow.
+        Visualization & Content Choices: 
+            - Opportunities: Goal=Inform/Compare, Method=Interactive HTML list (divs) with JS search/filter, Interaction=Click to view details, 'Express Interest' button, 'Summarize/Extract' button (Gemini API). Justification=Standard, effective for job boards, AI for quick insights. Library=Vanilla JS.
+            - Community: Goal=Organize/Inform, Method=HTML lists for posts/replies, HTML forms for input. Interaction=Click to view, submit forms. Justification=Standard forum interaction. Library=Vanilla JS.
+            - Profiles: Goal=Inform, Method=Styled HTML text for display, HTML forms for input, 'Enhance Profile' button (Gemini API). Interaction=View/Edit, AI for profile suggestions. Justification=Standard profile management, AI for career guidance. Library=Vanilla JS.
+            - No charts in MVP.
+            - CONFIRMATION: NO SVG graphics used. NO Mermaid JS used.
+        CONFIRMATION: NO SVG graphics used. NO Mermaid JS used.
+    -->
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .nav-link { padding: 0.5rem 1rem; border-radius: 0.375rem; transition: background-color 0.3s; }
+        .nav-link:hover, .nav-link.active { background-color: #3B82F6; color: white; }
+        .content-section { display: none; }
+        .content-section.active { display: block; }
+        .card { background-color: white; border-radius: 0.5rem; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); padding: 1.5rem; margin-bottom: 1rem; }
+        .btn { padding: 0.5rem 1rem; border-radius: 0.375rem; font-weight: 500; transition: background-color 0.3s; }
+        .btn-primary { background-color: #2563EB; color: white; }
+        .btn-primary:hover { background-color: #1D4ED8; }
+        .btn-secondary { background-color: #E5E7EB; color: #374151; }
+        .btn-secondary:hover { background-color: #D1D5DB; }
+        .form-input, .form-textarea, .form-select {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #D1D5DB;
+            border-radius: 0.375rem;
+            margin-top: 0.25rem;
+            margin-bottom: 1rem;
+        }
+        .form-label { display: block; margin-bottom: 0.25rem; font-weight: 500; color: #374151; }
+        .tab-button { padding: 0.5rem 1rem; border-bottom: 2px solid transparent; }
+        .tab-button.active { border-bottom-color: #2563EB; color: #2563EB; font-weight: 600; }
+        .modal {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-color: rgba(0,0,0,0.5); display: none;
+            align-items: center; justify-content: center; z-index: 1000;
+        }
+        .modal-content { background-color: white; padding: 2rem; border-radius: 0.5rem; width: 90%; max-width: 500px; }
+        .alert-message {
+            padding: 1rem; margin-bottom: 1rem; border-radius: 0.375rem;
+            position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
+            z-index: 1001; display: none;
+        }
+        .alert-success { background-color: #D1FAE5; color: #065F46; }
+        .alert-error { background-color: #FEE2E2; color: #991B1B; }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800">
+
+    <header class="bg-white shadow-md sticky top-0 z-50">
+        <nav class="container mx-auto px-4 sm:px-6 lg:px-8 py-4 flex flex-wrap items-center justify-between">
+            <a href="#" class="text-2xl font-bold text-blue-600" onclick="navigateTo('home')">CorpHire & Connect</a>
+            <button class="block lg:hidden text-gray-600 focus:outline-none" id="mobileMenuButton">
+                <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"></path></svg>
+            </button>
+            <div class="hidden lg:flex lg:items-center lg:space-x-2 w-full lg:w-auto" id="navLinks">
+                <a href="#" class="nav-link" data-page="home" onclick="navigateTo('home')">Home</a>
+                <a href="#" class="nav-link" data-page="opportunities" onclick="navigateTo('opportunities')">Opportunities</a>
+                <a href="#" class="nav-link" data-page="community" onclick="navigateTo('community')">Community</a>
+                <a href="#" class="nav-link" data-page="profile" onclick="navigateTo('profile')">Profile</a>
+                <a href="#" class="nav-link" data-page="auth" onclick="navigateTo('auth')">Login/Register</a>
+            </div>
+        </nav>
+    </header>
+
+    <main class="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <section id="home" class="content-section active">
+            <h1 class="text-3xl font-bold mb-6 text-gray-700">Welcome to CorpHire & Connect MVP!</h1>
+            <p class="mb-4 text-lg">Your essential launchpad for connecting NYSC corp members with relevant PPA and early career opportunities, and fostering a supportive professional community.</p>
+            <div class="grid md:grid-cols-2 gap-6">
+                <div class="card">
+                    <h2 class="text-2xl font-semibold mb-3 text-blue-600">Find Opportunities</h2>
+                    <p class="mb-4">Browse PPA placements and entry-level job listings tailored for NYSC members.</p>
+                    <button class="btn btn-primary" onclick="navigateTo('opportunities')">Explore Listings</button>
+                </div>
+                <div class="card">
+                    <h2 class="text-2xl font-semibold mb-3 text-blue-600">Join the Community</h2>
+                    <p class="mb-4">Connect with fellow corp members, share experiences, and get advice in our forums.</p>
+                    <button class="btn btn-primary" onclick="navigateTo('community')">Visit Forums</button>
+                </div>
+            </div>
+        </section>
+
+        <section id="opportunities" class="content-section">
+            <h1 class="text-3xl font-bold mb-6 text-gray-700">PPA & Job Opportunities</h1>
+            <p class="mb-4 text-lg">Discover opportunities relevant to your skills and NYSC deployment. Use the filters to narrow down your search.</p>
+            <div class="mb-6 p-4 bg-white rounded-lg shadow">
+                <div class="grid md:grid-cols-3 gap-4">
+                    <div>
+                        <label for="searchKeyword" class="form-label">Keyword</label>
+                        <input type="text" id="searchKeyword" class="form-input" placeholder="e.g., Marketing, Lagos">
+                    </div>
+                    <div>
+                        <label for="filterState" class="form-label">NYSC State</label>
+                        <select id="filterState" class="form-select">
+                            <option value="">All States</option>
+                            </select>
+                    </div>
+                    <div>
+                        <label for="filterIndustry" class="form-label">Industry</label>
+                        <select id="filterIndustry" class="form-select">
+                            <option value="">All Industries</option>
+                            </select>
+                    </div>
+                    <div>
+                        <label for="filterJobType" class="form-label">Job Type</label>
+                        <select id="filterJobType" class="form-select">
+                            <option value="">All Types</option>
+                            <option value="PPA">PPA</option>
+                            <option value="Job/Internship">Job/Internship</option>
+                        </select>
+                    </div>
+                    <div class="md:col-span-3 flex justify-end items-end">
+                        <button class="btn btn-primary" onclick="filterOpportunities()">Search</button>
+                    </div>
+                </div>
+            </div>
+            <div id="opportunityList" class="space-y-4">
+                <p class="text-center text-gray-500">No opportunities found or loaded yet.</p>
+            </div>
+        </section>
+
+        <section id="community" class="content-section">
+            <h1 class="text-3xl font-bold mb-6 text-gray-700">Community Forums</h1>
+            <p class="mb-4 text-lg">Connect with fellow corp members. Share your experiences, ask questions, and offer support.</p>
+            <div class="flex border-b mb-4">
+                <button class="tab-button active" data-tab="generalForum" onclick="switchForumTab(this, 'generalForum')">General Discussion</button>
+                <button class="tab-button" data-tab="stateForums" onclick="switchForumTab(this, 'stateForums')">State Forums</button>
+            </div>
+
+            <div id="generalForum" class="forum-tab-content active">
+                <h2 class="text-2xl font-semibold mb-4">General Discussion</h2>
+                <button class="btn btn-primary mb-4" onclick="openNewPostModal('general')">Create New Post</button>
+                <div id="generalPostsContainer" class="space-y-4">
+                    </div>
+            </div>
+
+            <div id="stateForums" class="forum-tab-content">
+                <h2 class="text-2xl font-semibold mb-4">State-Specific Forums</h2>
+                <label for="selectStateForum" class="form-label">Select State:</label>
+                <select id="selectStateForum" class="form-select mb-4" onchange="loadStateForumPosts()">
+                    <option value="">-- Select a State --</option>
+                    </select>
+                <button class="btn btn-primary mb-4" onclick="openNewPostModal(document.getElementById('selectStateForum').value)" id="createStatePostBtn" disabled>Create New Post in Selected State</button>
+                <div id="statePostsContainer" class="space-y-4">
+                    <p class="text-gray-500">Select a state to view posts.</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="profile" class="content-section">
+            <h1 class="text-3xl font-bold mb-6 text-gray-700">My Profile</h1>
+            <p class="mb-4 text-lg">Manage your profile information. This information will be visible to organizations when you express interest in an opportunity.</p>
+            <div id="profileView" class="card">
+                <h2 class="text-xl font-semibold mb-2" id="profileName">Your Name</h2>
+                <p class="mb-1"><strong>NYSC State:</strong> <span id="profileNyscState">Not Set</span></p>
+                <p class="mb-1"><strong>NYSC Batch:</strong> <span id="profileNyscBatch">Not Set</span></p>
+                <p class="mb-1"><strong>Discipline:</strong> <span id="profileDiscipline">Not Set</span></p>
+                <p class="mb-1"><strong>Skills:</strong> <span id="profileSkills">Not Set</span></p>
+                <p class="mb-1"><strong>Preferred Industry/Role:</strong> <span id="profilePreferredIndustry">Not Set</span></p>
+                <p class="mb-1"><strong>Email:</strong> <span id="profileEmail">Not Set</span></p>
+                <p class="mb-1"><strong>Phone:</strong> <span id="profilePhone">Not Set</span></p>
+                <p class="mb-4"><strong>CV/Resume:</strong> <span id="profileCvName">None uploaded</span> <a href="#" id="profileCvLink" target="_blank" class="text-blue-600 hover:underline hidden">View CV</a></p>
+                <button class="btn btn-primary" onclick="toggleProfileEdit(true)">Edit Profile</button>
+            </div>
+
+            <div id="profileEdit" class="card hidden">
+                <h2 class="text-xl font-semibold mb-4">Edit Profile</h2>
+                <form id="profileEditForm">
+                    <div>
+                        <label for="editProfileName" class="form-label">Full Name</label>
+                        <input type="text" id="editProfileName" class="form-input" required>
+                    </div>
+                    <div>
+                        <label for="editNyscState" class="form-label">NYSC State of Deployment</label>
+                        <select id="editNyscState" class="form-select" required></select>
+                    </div>
+                    <div>
+                        <label for="editNyscBatch" class="form-label">NYSC Batch</label>
+                        <input type="text" id="editNyscBatch" class="form-input" placeholder="e.g., 2024 Batch A Stream 1" required>
+                    </div>
+                    <div>
+                        <label for="editDiscipline" class="form-label">Discipline/Course of Study</label>
+                        <input type="text" id="editDiscipline" class="form-input" required>
+                    </div>
+                    <div>
+                        <label for="editSkills" class="form-label">Key Skills (comma-separated)</label>
+                        <input type="text" id="editSkills" class="form-input" placeholder="e.g., Python, Communication, Project Management">
+                    </div>
+                    <div>
+                        <label for="editPreferredIndustry" class="form-label">Preferred Industry/Role</label>
+                        <input type="text" id="editPreferredIndustry" class="form-input">
+                    </div>
+                    <div>
+                        <label for="editEmail" class="form-label">Email</label>
+                        <input type="email" id="editEmail" class="form-input" required>
+                    </div>
+                    <div>
+                        <label for="editPhone" class="form-label">Phone Number</label>
+                        <input type="tel" id="editPhone" class="form-input">
+                    </div>
+                    <div>
+                        <label for="editCv" class="form-label">Upload CV/Resume (PDF only)</label>
+                        <input type="file" id="editCv" class="form-input" accept=".pdf">
+                        <small class="text-gray-500">Leave blank to keep current CV.</small>
+                    </div>
+                    <div class="mt-6 flex space-x-4">
+                        <button type="submit" class="btn btn-primary">Save Changes</button>
+                        <button type="button" class="btn btn-secondary" onclick="toggleProfileEdit(false)">Cancel</button>
+                    </div>
+                    <button class="btn btn-primary mt-4 w-full" id="enhanceProfileBtn">✨ Enhance Profile with AI</button>
+                </form>
+            </div>
+             <div id="organizationProfileView" class="card hidden mt-6">
+                <h2 class="text-xl font-semibold mb-2" id="orgProfileName">Organization Name</h2>
+                <p class="mb-1"><strong>Industry:</strong> <span id="orgProfileIndustry">Not Set</span></p>
+                <p class="mb-1"><strong>Location(s):</strong> <span id="orgProfileLocation">Not Set</span></p>
+                <p class="mb-1"><strong>Description:</strong> <span id="orgProfileDescription">Not Set</span></p>
+                <p class="mb-1"><strong>Contact:</strong> <span id="orgProfileContactName"></span> (<span id="orgProfileContactEmail"></span>)</p>
+                <button class="btn btn-primary" onclick="openPostOpportunityModal()">Post New Opportunity</button>
+                <h3 class="text-lg font-semibold mt-4 mb-2">Posted Opportunities</h3>
+                <div id="orgPostedOpportunities" class="space-y-2"></div>
+            </div>
+        </section>
+
+        <section id="auth" class="content-section">
+            <h1 class="text-3xl font-bold mb-6 text-gray-700">Login or Register</h1>
+            <div class="grid md:grid-cols-2 gap-6">
+                <div class="card">
+                    <h2 class="text-2xl font-semibold mb-4">Login</h2>
+                    <form id="loginForm">
+                        <div>
+                            <label for="loginEmail" class="form-label">Email</label>
+                            <input type="email" id="loginEmail" class="form-input" required>
+                        </div>
+                        <div>
+                            <label for="loginPassword" class="form-label">Password</label>
+                            <input type="password" id="loginPassword" class="form-input" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary mt-2">Login</button>
+                    </form>
+                </div>
+
+                <div class="card">
+                    <h2 class="text-2xl font-semibold mb-4">Register</h2>
+                    <p class="mb-4">Are you a Corp Member or an Organization?</p>
+                    <div class="space-y-3">
+                        <button class="btn btn-primary w-full" onclick="showRegistrationForm('corpMember')">Register as Corp Member</button>
+                        <button class="btn btn-secondary w-full" onclick="showRegistrationForm('organization')">Register as Organization</button>
+                    </div>
+                </div>
+            </div>
+            <div id="corpMemberRegisterFormContainer" class="card mt-6 hidden">
+                <h2 class="text-2xl font-semibold mb-4">Corp Member Registration</h2>
+                <form id="corpMemberRegisterForm">
+                    <input type="text" id="cmRegName" class="form-input" placeholder="Full Name" required>
+                    <select id="cmRegNyscState" class="form-select" required><option value="">-- NYSC State --</option></select>
+                    <input type="text" id="cmRegNyscBatch" class="form-input" placeholder="NYSC Batch (e.g., 2024 A1)" required>
+                    <input type="text" id="cmRegDiscipline" class="form-input" placeholder="Discipline/Course of Study" required>
+                    <input type="email" id="cmRegEmail" class="form-input" placeholder="Email" required>
+                    <input type="password" id="cmRegPassword" class="form-input" placeholder="Password" required>
+                    <button type="submit" class="btn btn-primary mt-2">Register</button>
+                </form>
+            </div>
+            <div id="organizationRegisterFormContainer" class="card mt-6 hidden">
+                <h2 class="text-2xl font-semibold mb-4">Organization Registration</h2>
+                <form id="organizationRegisterForm">
+                    <input type="text" id="orgRegName" class="form-input" placeholder="Organization Name" required>
+                    <select id="orgRegIndustry" class="form-select" required><option value="">-- Industry --</option></select>
+                    <input type="text" id="orgRegLocation" class="form-input" placeholder="Location(s)" required>
+                    <input type="email" id="orgRegEmail" class="form-input" placeholder="Contact Email" required>
+                    <input type="password" id="orgRegPassword" class="form-input" placeholder="Password" required>
+                    <button type="submit" class="btn btn-primary mt-2">Register</button>
+                </form>
+            </div>
+        </section>
+    </main>
+
+    <footer class="bg-gray-800 text-white py-8 text-center">
+        <p>&copy; <span id="currentYear"></span> CorpHire & Connect MVP. All rights reserved.</p>
+        <p class="text-sm">A simplified platform for NYSC members and organizations.</p>
+    </footer>
+
+    <div id="opportunityModal" class="modal">
+        <div class="modal-content">
+            <h2 id="modalTitle" class="text-2xl font-semibold mb-4">Opportunity Details</h2>
+            <p id="modalDescription" class="mb-2"></p>
+            <p class="mb-1"><strong>Location:</strong> <span id="modalLocation"></span></p>
+            <p class="mb-1"><strong>Skills Required:</strong> <span id="modalSkills"></span></p>
+            <p class="mb-1"><strong>Deadline:</strong> <span id="modalDeadline"></span></p>
+            <p class="mb-4"><strong>Organization:</strong> <span id="modalOrganization"></span></p>
+            <div id="modalCorpMemberContent" class="hidden">
+                 <p class="mb-4">To express interest, please ensure your profile and CV are up to date.</p>
+                <button id="expressInterestBtn" class="btn btn-primary mr-2">Express Interest</button>
+                <button id="summarizeJobBtn" class="btn btn-secondary mt-2">✨ Summarize/Extract Skills</button>
+                <div id="jobSummaryOutput" class="mt-4 p-3 bg-blue-50 rounded hidden">
+                    <p class="text-sm text-gray-700">AI Insights:</p>
+                    <p id="jobSummaryText" class="text-sm text-gray-800"></p>
+                </div>
+            </div>
+            <button class="btn btn-secondary mt-4" onclick="closeModal('opportunityModal')">Close</button>
+        </div>
+    </div>
+
+    <div id="forumPostModal" class="modal">
+        <div class="modal-content">
+            <h2 id="forumPostModalTitle" class="text-2xl font-semibold mb-4">New Post</h2>
+            <form id="forumPostForm">
+                <input type="hidden" id="forumType" value="general"> <input type="hidden" id="replyToPostId" value="">
+                <div>
+                    <label for="postTitle" class="form-label">Title (for new posts)</label>
+                    <input type="text" id="postTitle" class="form-input">
+                </div>
+                <div>
+                    <label for="postContent" class="form-label">Content</label>
+                    <textarea id="postContent" class="form-textarea" rows="5" required></textarea>
+                </div>
+                <div class="mt-4">
+                    <button type="submit" class="btn btn-primary mr-2">Submit</button>
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('forumPostModal')">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <div id="viewPostModal" class="modal">
+        <div class="modal-content overflow-y-auto max-h-[80vh]">
+            <h2 id="viewPostModalTitle" class="text-2xl font-semibold mb-2">Post Title</h2>
+            <p class="text-sm text-gray-600 mb-1">By: <span id="viewPostModalAuthor"></span> | Date: <span id="viewPostModalDate"></span></p>
+            <div id="viewPostModalContent" class="prose max-w-none mb-4 p-3 bg-gray-50 rounded"></div>
+            <hr class="my-4">
+            <h3 class="text-xl font-semibold mb-3">Replies</h3>
+            <div id="viewPostModalRepliesContainer" class="space-y-3 mb-4">
+                </div>
+            <form id="replyToPostForm" class="mb-4">
+                <label for="replyContent" class="form-label">Your Reply:</label>
+                <textarea id="replyContent" class="form-textarea" rows="3" required></textarea>
+                <button type="submit" class="btn btn-primary mt-2">Post Reply</button>
+            </form>
+            <button class="btn btn-secondary" onclick="closeModal('viewPostModal')">Close</button>
+        </div>
+    </div>
+
+     <div id="postOpportunityModal" class="modal">
+        <div class="modal-content">
+            <h2 class="text-2xl font-semibold mb-4">Post New Opportunity</h2>
+            <form id="postOpportunityForm">
+                <div>
+                    <label for="oppTitle" class="form-label">Job/PPA Title</label>
+                    <input type="text" id="oppTitle" class="form-input" required>
+                </div>
+                <div>
+                    <label for="oppDescription" class="form-label">Detailed Description</label>
+                    <textarea id="oppDescription" class="form-textarea" rows="5" required></textarea>
+                </div>
+                <div>
+                    <label for="oppLocation" class="form-label">Location (City, State)</label>
+                    <input type="text" id="oppLocation" class="form-input" required>
+                </div>
+                <div>
+                    <label for="oppSkills" class="form-label">Required Skills (comma-separated)</label>
+                    <input type="text" id="oppSkills" class="form-input" required>
+                </div>
+                <div>
+                    <label for="oppDeadline" class="form-label">Application Deadline</label>
+                    <input type="date" id="oppDeadline" class="form-input" required>
+                </div>
+                <div>
+                    <label for="oppType" class="form-label">Opportunity Type</label>
+                    <select id="oppType" class="form-select" required>
+                        <option value="PPA">PPA</option>
+                        <option value="Job/Internship">Job/Internship</option>
+                    </select>
+                </div>
+                <div class="mt-4">
+                    <button type="submit" class="btn btn-primary mr-2">Post Opportunity</button>
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('postOpportunityModal')">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="profileEnhancerModal" class="modal">
+        <div class="modal-content">
+            <h2 class="text-2xl font-semibold mb-4">✨ AI Profile Enhancer Suggestions</h2>
+            <div id="profileSuggestions" class="mt-4 p-3 bg-blue-50 rounded">
+                <p class="text-sm text-gray-700">Loading suggestions...</p>
+            </div>
+            <button class="btn btn-secondary mt-4" onclick="closeModal('profileEnhancerModal')">Close</button>
+        </div>
+    </div>
+
+
+    <div id="alertMessage" class="alert-message"></div>
+
+    <script>
+        // Mock Data
+        const nyscStates = ["Abia", "Adamawa", "Akwa Ibom", "Anambra", "Bauchi", "Bayelsa", "Benue", "Borno", "Cross River", "Delta", "Ebonyi", "Edo", "Ekiti", "Enugu", "Gombe", "Imo", "Jigawa", "Kaduna", "Kano", "Katsina", "Kebbi", "Kogi", "Kwara", "Lagos", "Nasarawa", "Niger", "Ogun", "Ondo", "Osun", "Oyo", "Plateau", "Rivers", "Sokoto", "Taraba", "Yobe", "Zamfara", "FCT"];
+        const industries = ["Technology", "Education", "Healthcare", "Agriculture", "Finance", "Manufacturing", "Public Sector", "NGO", "Consulting", "Media"];
+        let currentUser = null; // { type: 'corpMember'/'organization', id: ..., ...data }
+        let currentCvFile = null;
+
+        let corpMembers = [
+            { id: 'cm1', name: 'Aisha Bello', nyscState: 'lagos', nyscBatch: '2024 A1', discipline: 'Computer Science', skills: 'JavaScript, React, Node.js', preferredIndustry: 'Technology', email: 'aisha@example.com', phone: '08012345678', cvUrl: null, password: 'password123', expressedInterests: [] },
+        ];
+        let organizations = [
+            { id: 'org1', name: 'Tech Solutions Ltd.', industry: 'Technology', location: 'Lagos', description: 'Innovative tech company.', contactName: 'Mr. John Doe', contactEmail: 'hr@techsolutions.com', password: 'password123' },
+            { id: 'org2', name: 'Green Farms NG', industry: 'Agriculture', location: 'Oyo', description: 'Sustainable agriculture.', contactName: 'Ms. Ada Green', contactEmail: 'careers@greenfarms.ng', password: 'password123' }
+        ];
+        let jobListings = [
+            { id: 'job1', orgId: 'org1', title: 'Graduate Trainee - Software Developer (PPA)', description: 'Exciting PPA opportunity for a budding software developer. Learn and grow with us.', location: 'Lagos', skillsRequired: 'Java, Python, Problem-solving', deadline: '2025-07-30', type: 'PPA', orgName: 'Tech Solutions Ltd.' },
+            { id: 'job2', orgId: 'org2', title: 'Farm Supervisor Assistant (PPA)', description: 'Assist in daily farm operations and learn about modern agricultural practices.', location: 'Ibadan, Oyo', skillsRequired: 'Agriculture knowledge, Hardworking', deadline: '2025-08-15', type: 'PPA', orgName: 'Green Farms NG' },
+            { id: 'job3', orgId: 'org1', title: 'Junior UI/UX Designer (Internship)', description: 'Join our design team to work on exciting projects.', location: 'Lagos', skillsRequired: 'Figma, Adobe XD, User Research', deadline: '2025-07-20', type: 'Job/Internship', orgName: 'Tech Solutions Ltd.' }
+        ];
+        let forumPosts = {
+            general: [
+                { id: 'gp1', authorId: 'cm1', authorName: 'Aisha Bello', title: 'Tips for Settling into Camp?', content: 'Hi everyone, any advice for a prospective corp member on what to expect and how to prepare for camp life?', date: '2025-05-20', replies: [
+                    {id: 'gpr1', authorId: 'cm_anonymous', authorName: 'Past Corper', content: 'Pack light but smart! Get a good power bank.', date: '2025-05-20'}
+                ] },
+            ],
+            // State forums will be like: 'Lagos': [{...}, {...}]
+        };
+        nyscStates.forEach(state => { forumPosts[state.toLowerCase().replace(/\s+/g, '')] = []; });
+
+
+        // DOM Elements
+        const navLinks = document.querySelectorAll('.nav-link');
+        const contentSections = document.querySelectorAll('.content-section');
+        const mobileMenuButton = document.getElementById('mobileMenuButton');
+        const navLinksContainer = document.getElementById('navLinks');
+        const opportunityListEl = document.getElementById('opportunityList');
+        const filterStateEl = document.getElementById('filterState');
+        const editNyscStateEl = document.getElementById('editNyscState');
+        const cmRegNyscStateEl = document.getElementById('cmRegNyscState');
+        const filterIndustryEl = document.getElementById('filterIndustry');
+        const orgRegIndustryEl = document.getElementById('orgRegIndustry');
+        const selectStateForumEl = document.getElementById('selectStateForum');
+        const createStatePostBtn = document.getElementById('createStatePostBtn');
+        
+        // Alert Message Function
+        function showAlert(message, type = 'success') {
+            const alertEl = document.getElementById('alertMessage');
+            alertEl.textContent = message;
+            alertEl.className = `alert-message alert-${type}`; // Reset classes
+            alertEl.style.display = 'block';
+            setTimeout(() => {
+                alertEl.style.display = 'none';
+            }, 3000);
+        }
+
+        // Navigation
+        function navigateTo(pageId) {
+            contentSections.forEach(section => section.classList.remove('active'));
+            document.getElementById(pageId).classList.add('active');
+
+            navLinks.forEach(link => {
+                link.classList.remove('active');
+                if (link.dataset.page === pageId) {
+                    link.classList.add('active');
+                }
+            });
+            // Close mobile menu if open
+            navLinksContainer.classList.add('hidden');
+            navLinksContainer.classList.remove('flex');
+
+            // Update content based on page
+            if (pageId === 'opportunities') renderOpportunities(jobListings);
+            if (pageId === 'community') {
+                renderForumPosts('general', forumPosts.general, 'generalPostsContainer'); // Corrected call
+                loadStateForumPosts(); // to handle initial state or re-selection
+            }
+            if (pageId === 'profile') loadProfileView();
+            if (pageId === 'auth') {
+                document.getElementById('corpMemberRegisterFormContainer').classList.add('hidden');
+                document.getElementById('organizationRegisterFormContainer').classList.add('hidden');
+            }
+        }
+        
+        mobileMenuButton.addEventListener('click', () => {
+            navLinksContainer.classList.toggle('hidden');
+            navLinksContainer.classList.toggle('flex');
+            navLinksContainer.classList.toggle('flex-col');
+            navLinksContainer.classList.toggle('lg:flex-row');
+             navLinksContainer.classList.toggle('lg:space-x-2');
+             navLinksContainer.classList.toggle('w-full');
+             navLinksContainer.classList.toggle('lg:w-auto');
+
+        });
+
+        // Populate Selects
+        function populateSelect(element, optionsArray) {
+            if (!element) return;
+            optionsArray.forEach(opt => {
+                const option = document.createElement('option');
+                option.value = opt.toLowerCase().replace(/\s+/g, '');
+                option.textContent = opt;
+                element.appendChild(option.cloneNode(true));
+            });
+        }
+
+        // Opportunities
+        function renderOpportunities(listings) {
+            opportunityListEl.innerHTML = '';
+            if (listings.length === 0) {
+                opportunityListEl.innerHTML = '<p class="text-center text-gray-500">No opportunities match your criteria.</p>';
+                return;
+            }
+            listings.forEach(job => {
+                const jobCard = `
+                    <div class="card">
+                        <h3 class="text-xl font-semibold text-blue-600 mb-1">${job.title}</h3>
+                        <p class="text-sm text-gray-600 mb-2"><strong>Organization:</strong> ${job.orgName || organizations.find(o=>o.id === job.orgId)?.name}</p>
+                        <p class="text-sm text-gray-600 mb-2"><strong>Location:</strong> ${job.location}</p>
+                        <p class="text-sm text-gray-600 mb-2"><strong>Type:</strong> ${job.type}</p>
+                        <p class="mb-3 text-gray-700 truncate">${job.description}</p>
+                        <button class="btn btn-primary" onclick="openOpportunityModal('${job.id}')">View Details</button>
+                    </div>
+                `;
+                opportunityListEl.innerHTML += jobCard;
+            });
+        }
+
+        function filterOpportunities() {
+            const keyword = document.getElementById('searchKeyword').value.toLowerCase();
+            const state = document.getElementById('filterState').value;
+            const industry = document.getElementById('filterIndustry').value;
+            const jobType = document.getElementById('filterJobType').value;
+
+            const filtered = jobListings.filter(job => {
+                const org = organizations.find(o => o.id === job.orgId);
+                const jobOrgIndustry = org ? org.industry.toLowerCase().replace(/\s+/g, '') : '';
+                
+                return (keyword === '' || job.title.toLowerCase().includes(keyword) || job.description.toLowerCase().includes(keyword) || job.skillsRequired.toLowerCase().includes(keyword)) &&
+                       (state === '' || job.location.toLowerCase().includes(state.replace(/\s+/g, ''))) && // Simplified state matching
+                       (industry === '' || jobOrgIndustry === industry) &&
+                       (jobType === '' || job.type === jobType);
+            });
+            renderOpportunities(filtered);
+        }
+        
+        let currentOpenOpportunityId = null;
+        function openOpportunityModal(jobId) {
+            currentOpenOpportunityId = jobId;
+            const job = jobListings.find(j => j.id === jobId);
+            const org = organizations.find(o => o.id === job.orgId);
+            if (!job) return;
+
+            document.getElementById('modalTitle').textContent = job.title;
+            document.getElementById('modalDescription').textContent = job.description;
+            document.getElementById('modalLocation').textContent = job.location;
+            document.getElementById('modalSkills').textContent = job.skillsRequired;
+            document.getElementById('modalDeadline').textContent = new Date(job.deadline).toLocaleDateString();
+            document.getElementById('modalOrganization').textContent = org ? org.name : 'N/A';
+            
+            const modalCorpMemberContent = document.getElementById('modalCorpMemberContent');
+            const jobSummaryOutput = document.getElementById('jobSummaryOutput');
+            jobSummaryOutput.classList.add('hidden'); // Hide AI output initially
+            document.getElementById('jobSummaryText').textContent = ''; // Clear previous AI text
+
+            if (currentUser && currentUser.type === 'corpMember') {
+                modalCorpMemberContent.classList.remove('hidden');
+            } else {
+                modalCorpMemberContent.classList.add('hidden');
+            }
+
+            document.getElementById('opportunityModal').style.display = 'flex';
+        }
+        
+        document.getElementById('expressInterestBtn')?.addEventListener('click', () => {
+            if (!currentUser || currentUser.type !== 'corpMember') {
+                showAlert('Please login as a Corp Member to express interest.', 'error');
+                return;
+            }
+            if (!currentOpenOpportunityId) return;
+
+            const job = jobListings.find(j => j.id === currentOpenOpportunityId);
+            const org = organizations.find(o => o.id === job.orgId);
+
+            // Simulate expressing interest
+            currentUser.expressedInterests = currentUser.expressedInterests || [];
+            if (!currentUser.expressedInterests.includes(currentOpenOpportunityId)) {
+                currentUser.expressedInterests.push(currentOpenOpportunityId);
+            }
+            
+            console.log(`Interest expressed by ${currentUser.email} for job ${currentOpenOpportunityId} at ${org.name}. Contact: ${org.contactEmail}`);
+            showAlert(`Interest expressed for "${job.title}". The organization will be notified.`, 'success');
+            closeModal('opportunityModal');
+        });
+
+        document.getElementById('summarizeJobBtn')?.addEventListener('click', async () => {
+            if (!currentOpenOpportunityId) return;
+
+            const job = jobListings.find(j => j.id === currentOpenOpportunityId);
+            if (!job) return;
+
+            const jobDescription = job.description;
+            const jobSummaryOutput = document.getElementById('jobSummaryOutput');
+            const jobSummaryText = document.getElementById('jobSummaryText');
+
+            jobSummaryOutput.classList.remove('hidden');
+            jobSummaryText.textContent = 'Generating insights...';
+
+            try {
+                let chatHistory = [];
+                const prompt = `Summarize the following job description concisely and extract the 5 most important key skills required.
+                Job Description: ${jobDescription}`;
+                chatHistory.push({ role: "user", parts: [{ text: prompt }] });
+                const payload = { contents: chatHistory };
+                const apiKey = ""; 
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+                
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                
+                const result = await response.json();
+
+                if (result.candidates && result.candidates.length > 0 &&
+                    result.candidates[0].content && result.candidates[0].content.parts &&
+                    result.candidates[0].content.parts.length > 0) {
+                    const text = result.candidates[0].content.parts[0].text;
+                    jobSummaryText.textContent = text;
+                } else {
+                    jobSummaryText.textContent = 'Failed to get summary. Please try again.';
+                    console.error('Gemini API response structure unexpected:', result);
+                }
+            } catch (error) {
+                jobSummaryText.textContent = 'Error generating summary. Please check console.';
+                console.error('Error calling Gemini API:', error);
+            }
+        });
+
+
+        // Community Forums
+        function switchForumTab(buttonEl, tabId) {
+            document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+            buttonEl.classList.add('active');
+            document.querySelectorAll('.forum-tab-content').forEach(content => content.classList.remove('active'));
+            document.getElementById(tabId).classList.add('active');
+        }
+
+        function renderForumPosts(forumKey, postsToRender, containerId) {
+            const container = document.getElementById(containerId);
+            if (!container) {
+                console.error(`Container with ID "${containerId}" not found for forumKey "${forumKey}".`);
+                return;
+            }
+            container.innerHTML = '';
+            if (postsToRender.length === 0) {
+                container.innerHTML = '<p class="text-gray-500">No posts in this forum yet.</p>';
+                return;
+            }
+            postsToRender.slice().reverse().forEach(post => { // Show newest first
+                const postEl = document.createElement('div');
+                postEl.className = 'card';
+                postEl.innerHTML = `
+                    <h4 class="text-lg font-semibold text-blue-600 mb-1">${post.title}</h4>
+                    <p class="text-xs text-gray-500 mb-2">By: ${post.authorName} | On: ${new Date(post.date).toLocaleDateString()}</p>
+                    <p class="mb-2 text-gray-700 truncate">${post.content}</p>
+                    <button class="text-sm text-blue-500 hover:underline" onclick="openViewPostModal('${forumKey}', '${post.id}')">View Post & Replies (${post.replies ? post.replies.length : 0})</button>
+                `;
+                container.appendChild(postEl);
+            });
+        }
+        
+        let currentViewingPost = { forumKey: null, postId: null };
+
+        function openViewPostModal(forumKey, postId) {
+            currentViewingPost = { forumKey, postId };
+            const post = forumPosts[forumKey]?.find(p => p.id === postId);
+            if (!post) return;
+
+            document.getElementById('viewPostModalTitle').textContent = post.title;
+            document.getElementById('viewPostModalAuthor').textContent = post.authorName;
+            document.getElementById('viewPostModalDate').textContent = new Date(post.date).toLocaleDateString();
+            document.getElementById('viewPostModalContent').textContent = post.content; // Using textContent for simplicity, not prose
+
+            const repliesContainer = document.getElementById('viewPostModalRepliesContainer');
+            repliesContainer.innerHTML = '';
+            if (post.replies && post.replies.length > 0) {
+                post.replies.forEach(reply => {
+                    const replyEl = document.createElement('div');
+                    replyEl.className = 'p-3 bg-gray-100 rounded-md';
+                    replyEl.innerHTML = `
+                        <p class="text-sm text-gray-800">${reply.content}</p>
+                        <p class="text-xs text-gray-500 mt-1">By: ${reply.authorName} | On: ${new Date(reply.date).toLocaleDateString()}</p>
+                    `;
+                    repliesContainer.appendChild(replyEl);
+                });
+            } else {
+                repliesContainer.innerHTML = '<p class="text-sm text-gray-500">No replies yet.</p>';
+            }
+            document.getElementById('replyContent').value = ''; // Clear reply field
+            document.getElementById('viewPostModal').style.display = 'flex';
+        }
+
+        document.getElementById('replyToPostForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            if (!currentUser || currentUser.type !== 'corpMember') {
+                showAlert('Please login as a Corp Member to reply.', 'error');
+                return;
+            }
+            const content = document.getElementById('replyContent').value.trim();
+            if (!content) {
+                showAlert('Reply content cannot be empty.', 'error');
+                return;
+            }
+
+            const { forumKey, postId } = currentViewingPost;
+            const post = forumPosts[forumKey]?.find(p => p.id === postId);
+            if (post) {
+                const newReply = {
+                    id: 'r' + Date.now(),
+                    authorId: currentUser.id,
+                    authorName: currentUser.name,
+                    content: content,
+                    date: new Date().toISOString()
+                };
+                post.replies = post.replies || [];
+                post.replies.push(newReply);
+                showAlert('Reply posted!', 'success');
+                // Re-render replies in modal
+                openViewPostModal(forumKey, postId);
+            }
+        });
+
+
+        function loadStateForumPosts() {
+            const selectedState = selectStateForumEl.value;
+            const postsContainer = document.getElementById('statePostsContainer');
+            if (selectedState) {
+                createStatePostBtn.disabled = false;
+                renderForumPosts(selectedState, forumPosts[selectedState] || [], 'statePostsContainer');
+            } else {
+                createStatePostBtn.disabled = true;
+                postsContainer.innerHTML = '<p class="text-gray-500">Select a state to view posts.</p>';
+            }
+        }
+
+        let currentForumType = 'general';
+        let currentReplyToPostId = null;
+
+        function openNewPostModal(forumKey, replyToId = null) {
+            if (!currentUser || currentUser.type !== 'corpMember') {
+                showAlert('Please login as a Corp Member to post.', 'error');
+                return;
+            }
+            currentForumType = forumKey || 'general';
+            currentReplyToPostId = replyToId;
+
+            document.getElementById('forumPostForm').reset();
+            document.getElementById('forumType').value = currentForumType;
+            document.getElementById('replyToPostId').value = currentReplyToPostId || '';
+            
+            const modalTitleEl = document.getElementById('forumPostModalTitle');
+            const postTitleInputEl = document.getElementById('postTitle');
+            
+            if (replyToId) { // This logic is simplified, actual reply UI is in viewPostModal
+                modalTitleEl.textContent = 'New Reply';
+                postTitleInputEl.parentElement.style.display = 'none'; // Hide title for replies
+            } else {
+                modalTitleEl.textContent = `New Post in ${forumKey === 'general' ? 'General Discussion' : nyscStates.find(s => s.toLowerCase().replace(/\s+/g, '') === forumKey)}`;
+                postTitleInputEl.parentElement.style.display = 'block';
+            }
+            document.getElementById('forumPostModal').style.display = 'flex';
+        }
+
+        document.getElementById('forumPostForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const title = document.getElementById('postTitle').value.trim();
+            const content = document.getElementById('postContent').value.trim();
+            const forumKey = document.getElementById('forumType').value;
+            // const replyToId = document.getElementById('replyToPostId').value; // Reply logic is now separate
+
+            if (!content) {
+                showAlert('Content cannot be empty.', 'error');
+                return;
+            }
+            if (!forumKey) { // Should not happen if modal opened correctly
+                showAlert('Forum not specified.', 'error');
+                return;
+            }
+            if (/*!replyToId &&*/ !title) { // Title required for new posts
+                 showAlert('Title cannot be empty for a new post.', 'error');
+                return;
+            }
+
+            const newPost = {
+                id: 'p' + Date.now(),
+                authorId: currentUser.id,
+                authorName: currentUser.name,
+                title: title,
+                content: content,
+                date: new Date().toISOString(),
+                replies: []
+            };
+
+            forumPosts[forumKey] = forumPosts[forumKey] || [];
+            forumPosts[forumKey].push(newPost);
+            
+            showAlert('Post submitted!', 'success');
+            closeModal('forumPostModal');
+            // Re-render posts for the current forum
+            if (forumKey === 'general') {
+                renderForumPosts('general', forumPosts.general, 'generalPostsContainer');
+            } else {
+                renderForumPosts(forumKey, forumPosts[forumKey], 'statePostsContainer');
+            }
+        });
+
+        // Profile Management
+        function loadProfileView() {
+            const profileSection = document.getElementById('profile');
+            const corpMemberProfileView = profileSection.querySelector('#profileView');
+            const corpMemberProfileEdit = profileSection.querySelector('#profileEdit');
+            const orgProfileView = profileSection.querySelector('#organizationProfileView');
+
+            if (currentUser) {
+                if (currentUser.type === 'corpMember') {
+                    corpMemberProfileView.classList.remove('hidden');
+                    corpMemberProfileEdit.classList.add('hidden'); // Ensure edit is hidden initially
+                    orgProfileView.classList.add('hidden');
+
+                    document.getElementById('profileName').textContent = currentUser.name || 'Not Set';
+                    document.getElementById('profileNyscState').textContent = nyscStates.find(s => s.toLowerCase().replace(/\s+/g, '') === currentUser.nyscState) || currentUser.nyscState || 'Not Set';
+                    document.getElementById('profileNyscBatch').textContent = currentUser.nyscBatch || 'Not Set';
+                    document.getElementById('profileDiscipline').textContent = currentUser.discipline || 'Not Set';
+                    document.getElementById('profileSkills').textContent = currentUser.skills || 'Not Set';
+                    document.getElementById('profilePreferredIndustry').textContent = currentUser.preferredIndustry || 'Not Set';
+                    document.getElementById('profileEmail').textContent = currentUser.email || 'Not Set';
+                    document.getElementById('profilePhone').textContent = currentUser.phone || 'Not Set';
+                    
+                    const cvNameEl = document.getElementById('profileCvName');
+                    const cvLinkEl = document.getElementById('profileCvLink');
+                    if (currentUser.cvUrl && currentUser.cvFileName) { // Assuming cvFileName is stored
+                        cvNameEl.textContent = currentUser.cvFileName;
+                        cvLinkEl.href = currentUser.cvUrl;
+                        cvLinkEl.classList.remove('hidden');
+                    } else {
+                        cvNameEl.textContent = 'None uploaded';
+                        cvLinkEl.classList.add('hidden');
+                    }
+
+                } else if (currentUser.type === 'organization') {
+                    corpMemberProfileView.classList.add('hidden');
+                    corpMemberProfileEdit.classList.add('hidden');
+                    orgProfileView.classList.remove('hidden');
+
+                    document.getElementById('orgProfileName').textContent = currentUser.name || 'Not Set';
+                    document.getElementById('orgProfileIndustry').textContent = industries.find(i => i.toLowerCase().replace(/\s+/g, '') === currentUser.industry) || currentUser.industry || 'Not Set';
+                    document.getElementById('orgProfileLocation').textContent = currentUser.location || 'Not Set';
+                    document.getElementById('orgProfileDescription').textContent = currentUser.description || 'Not Set';
+                    document.getElementById('orgProfileContactName').textContent = currentUser.contactName || '';
+                    document.getElementById('orgProfileContactEmail').textContent = currentUser.email || 'Not Set';
+                    renderOrganizationOpportunities();
+                }
+            } else {
+                corpMemberProfileView.classList.add('hidden');
+                corpMemberProfileEdit.classList.add('hidden');
+                orgProfileView.classList.add('hidden');
+                profileSection.innerHTML = '<p class="text-lg text-center text-gray-600">Please <a href="#" class="text-blue-600 hover:underline" onclick="navigateTo(\'auth\')">login or register</a> to view your profile.</p>';
+            }
+        }
+        
+        function renderOrganizationOpportunities() {
+            const container = document.getElementById('orgPostedOpportunities');
+            container.innerHTML = '';
+            const orgJobs = jobListings.filter(job => job.orgId === currentUser.id);
+            if (orgJobs.length === 0) {
+                container.innerHTML = '<p class="text-sm text-gray-500">You have not posted any opportunities yet.</p>';
+                return;
+            }
+            orgJobs.forEach(job => {
+                const jobEl = document.createElement('div');
+                jobEl.className = 'p-2 border rounded';
+                jobEl.innerHTML = `<p class="font-medium">${job.title} <span class="text-xs bg-blue-100 text-blue-700 px-1 rounded">${job.type}</span></p><p class="text-xs text-gray-600">${job.location} - Deadline: ${new Date(job.deadline).toLocaleDateString()}</p>`;
+                container.appendChild(jobEl);
+            });
+        }
+
+
+        function toggleProfileEdit(isEditing) {
+            if (isEditing) {
+                // Populate edit form
+                document.getElementById('editProfileName').value = currentUser.name || '';
+                document.getElementById('editNyscState').value = currentUser.nyscState || '';
+                document.getElementById('editNyscBatch').value = currentUser.nyscBatch || '';
+                document.getElementById('editDiscipline').value = currentUser.discipline || '';
+                document.getElementById('editSkills').value = currentUser.skills || '';
+                document.getElementById('editPreferredIndustry').value = currentUser.preferredIndustry || '';
+                document.getElementById('editEmail').value = currentUser.email || '';
+                document.getElementById('editPhone').value = currentUser.phone || '';
+                document.getElementById('editCv').value = ''; // Clear file input
+                currentCvFile = null;
+
+                document.getElementById('profileView').classList.add('hidden');
+                document.getElementById('profileEdit').classList.remove('hidden');
+            } else {
+                document.getElementById('profileView').classList.remove('hidden');
+                document.getElementById('profileEdit').classList.add('hidden');
+            }
+        }
+
+        document.getElementById('profileEditForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            if (!currentUser || currentUser.type !== 'corpMember') return;
+
+            currentUser.name = document.getElementById('editProfileName').value;
+            currentUser.nyscState = document.getElementById('editNyscState').value;
+            currentUser.nyscBatch = document.getElementById('editNyscBatch').value;
+            currentUser.discipline = document.getElementById('editDiscipline').value;
+            currentUser.skills = document.getElementById('editSkills').value;
+            currentUser.preferredIndustry = document.getElementById('editPreferredIndustry').value;
+            currentUser.email = document.getElementById('editEmail').value; // Consider if email should be editable after registration
+            currentUser.phone = document.getElementById('editPhone').value;
+
+            const cvInput = document.getElementById('editCv');
+            if (cvInput.files && cvInput.files[0]) {
+                currentCvFile = cvInput.files[0];
+                // Simulate CV upload: store as a data URL or just filename for MVP
+                currentUser.cvFileName = currentCvFile.name;
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    currentUser.cvUrl = event.target.result; // Store as data URL
+                    showAlert('Profile and CV updated successfully!', 'success');
+                    loadProfileView(); // Refresh view
+                    toggleProfileEdit(false); // Switch back to view mode
+                };
+                reader.readAsDataURL(currentCvFile);
+            } else {
+                 showAlert('Profile updated successfully!', 'success');
+                 loadProfileView();
+                 toggleProfileEdit(false);
+            }
+        });
+        
+        document.getElementById('editCv').addEventListener('change', function(e) {
+            if (e.target.files && e.target.files[0]) {
+                currentCvFile = e.target.files[0];
+            }
+        });
+
+        document.getElementById('enhanceProfileBtn')?.addEventListener('click', async () => {
+            if (!currentUser || currentUser.type !== 'corpMember') {
+                showAlert('Please login as a Corp Member to enhance your profile.', 'error');
+                return;
+            }
+
+            const profileSuggestionsEl = document.getElementById('profileSuggestions');
+            profileSuggestionsEl.textContent = 'Generating suggestions...';
+            document.getElementById('profileEnhancerModal').style.display = 'flex';
+
+            const discipline = currentUser.discipline || 'a general field';
+            const skills = currentUser.skills || 'no specific skills listed';
+            const preferredIndustry = currentUser.preferredIndustry || 'any industry';
+
+            try {
+                let chatHistory = [];
+                const prompt = `As a career advisor, suggest ways a corp member with a discipline in "${discipline}", existing skills like "${skills}", and a preferred industry of "${preferredIndustry}" can enhance their profile and skills for job applications. Provide actionable advice and relevant skills to acquire. Format as bullet points.`;
+                chatHistory.push({ role: "user", parts: [{ text: prompt }] });
+                const payload = { contents: chatHistory };
+                const apiKey = ""; 
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+                
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                
+                const result = await response.json();
+
+                if (result.candidates && result.candidates.length > 0 &&
+                    result.candidates[0].content && result.candidates[0].content.parts &&
+                    result.candidates[0].content.parts.length > 0) {
+                    const text = result.candidates[0].content.parts[0].text;
+                    profileSuggestionsEl.textContent = text;
+                } else {
+                    profileSuggestionsEl.textContent = 'Failed to get suggestions. Please try again.';
+                    console.error('Gemini API response structure unexpected:', result);
+                }
+            } catch (error) {
+                profileSuggestionsEl.textContent = 'Error generating suggestions. Please check console.';
+                console.error('Error calling Gemini API:', error);
+            }
+        });
+
+
+        // Auth
+        function showRegistrationForm(type) {
+            document.getElementById('corpMemberRegisterFormContainer').classList.add('hidden');
+            document.getElementById('organizationRegisterFormContainer').classList.add('hidden');
+            if (type === 'corpMember') {
+                document.getElementById('corpMemberRegisterFormContainer').classList.remove('hidden');
+            } else if (type === 'organization') {
+                document.getElementById('organizationRegisterFormContainer').classList.remove('hidden');
+            }
+        }
+
+        document.getElementById('loginForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+            
+            let foundUser = corpMembers.find(u => u.email === email && u.password === password);
+            if (foundUser) {
+                currentUser = {...foundUser, type: 'corpMember'};
+            } else {
+                foundUser = organizations.find(u => u.email === email && u.password === password);
+                if (foundUser) {
+                    currentUser = {...foundUser, type: 'organization'};
+                }
+            }
+
+            if (currentUser) {
+                showAlert(`Logged in successfully as ${currentUser.name}!`, 'success');
+                navigateTo('profile'); // Or dashboard
+            } else {
+                showAlert('Invalid email or password.', 'error');
+            }
+        });
+
+        document.getElementById('corpMemberRegisterForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const newUser = {
+                id: 'cm' + Date.now(),
+                name: document.getElementById('cmRegName').value,
+                nyscState: document.getElementById('cmRegNyscState').value,
+                nyscBatch: document.getElementById('cmRegNyscBatch').value,
+                discipline: document.getElementById('cmRegDiscipline').value,
+                email: document.getElementById('cmRegEmail').value,
+                password: document.getElementById('cmRegPassword').value, // In real app, hash this
+                skills: '', preferredIndustry: '', phone: '', cvUrl: null, expressedInterests: []
+            };
+            corpMembers.push(newUser);
+            currentUser = {...newUser, type: 'corpMember'};
+            showAlert('Corp Member registration successful! Please complete your profile.', 'success');
+            navigateTo('profile');
+        });
+
+        document.getElementById('organizationRegisterForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const newOrg = {
+                id: 'org' + Date.now(),
+                name: document.getElementById('orgRegName').value,
+                industry: document.getElementById('orgRegIndustry').value,
+                location: document.getElementById('orgRegLocation').value,
+                email: document.getElementById('orgRegEmail').value, // This should be contact email
+                password: document.getElementById('orgRegPassword').value,
+                description: 'Please update your organization description.', contactName: 'N/A'
+            };
+            organizations.push(newOrg);
+            currentUser = {...newOrg, type: 'organization'};
+            showAlert('Organization registration successful! Please complete your profile.', 'success');
+            navigateTo('profile');
+        });
+
+        // Modal Controls
+        function closeModal(modalId) {
+            document.getElementById(modalId).style.display = 'none';
+            currentOpenOpportunityId = null; // Reset for opportunity modal
+            currentViewingPost = { forumKey: null, postId: null }; // Reset for view post modal
+        }
+        
+        // Organization Post Opportunity
+        function openPostOpportunityModal() {
+            if (!currentUser || currentUser.type !== 'organization') {
+                showAlert('Please login as an Organization to post opportunities.', 'error');
+                return;
+            }
+            document.getElementById('postOpportunityForm').reset();
+            document.getElementById('postOpportunityModal').style.display = 'flex';
+        }
+
+        document.getElementById('postOpportunityForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const newOpp = {
+                id: 'job' + Date.now(),
+                orgId: currentUser.id,
+                orgName: currentUser.name,
+                title: document.getElementById('oppTitle').value,
+                description: document.getElementById('oppDescription').value,
+                location: document.getElementById('oppLocation').value,
+                skillsRequired: document.getElementById('oppSkills').value,
+                deadline: document.getElementById('oppDeadline').value,
+                type: document.getElementById('oppType').value,
+            };
+            jobListings.unshift(newOpp); // Add to the beginning
+            showAlert('Opportunity posted successfully!', 'success');
+            closeModal('postOpportunityModal');
+            renderOrganizationOpportunities(); // Refresh list on profile
+            if (document.getElementById('opportunities').classList.contains('active')) {
+                renderOpportunities(jobListings); // Refresh main opportunity list if visible
+            }
+        });
+
+
+        // Initial Setup
+        window.onload = () => {
+            document.getElementById('currentYear').textContent = new Date().getFullYear();
+            populateSelect(filterStateEl, nyscStates);
+            populateSelect(editNyscStateEl, nyscStates);
+            populateSelect(cmRegNyscStateEl, nyscStates);
+            populateSelect(selectStateForumEl, nyscStates);
+            
+            populateSelect(filterIndustryEl, industries);
+            populateSelect(orgRegIndustryEl, industries);
+
+            navigateTo('home'); // Start on home page
+        };
+    </script>
+</body>
+</html>
